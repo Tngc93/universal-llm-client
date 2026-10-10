@@ -1,0 +1,69 @@
+# universal-llm-client
+
+> Zero-dependency JavaScript/TypeScript client for LLM providers (OpenAI, Anthropic, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Ollama, LM Studio, any OpenAI-compatible endpoint, offline mock) with fallback chains, retries, structured JSON output and streaming. ESM, Node 18.17+.
+
+This file is for coding agents writing code that uses universal-llm-client. Follow these rules exactly.
+
+## Imports
+
+```js
+import { createAI, fromEnv, AIError, validateSchema } from 'universal-llm-client';
+```
+
+There is no default export and no class to instantiate with `new`.
+
+## Creating a client
+
+- `createAI({ provider, model, apiKey?, baseUrl?, fallback?, timeoutMs?, maxRetries?, headers?, onRetry?, onFallback? })`
+- `provider` is one of: `openai`, `anthropic`, `gemini`, `openrouter`, `groq`, `mistral`, `deepseek`, `xai`, `together`, `ollama`, `lmstudio`, `openai-compatible`, `mock`.
+- `model` is REQUIRED for every provider except `mock`. There are no default model names. Do not invent model ids; read them from config or env (e.g. `process.env.ANTHROPIC_MODEL`).
+- API keys default to the provider's usual env var (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, …). Do not hard-code keys.
+- `fallback` entries are objects like `{ provider: 'openai', model: '…' }` or strings `'provider:model'` / `'mock'`.
+- Prefer `fromEnv()` in apps: it reads `LLM_PROVIDER`, `LLM_MODEL`, `LLM_FALLBACK` (comma-separated `provider:model`), `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`. With nothing set it uses `mock`.
+
+## Calling
+
+```js
+const { text, usage, provider, attempts } = await ai.generate({ prompt: '…', system: '…', maxTokens: 500 });
+const { text } = await ai.generate({ messages: [{ role: 'user', content: '…' }, { role: 'assistant', content: '…' }, { role: 'user', content: '…' }] });
+```
+
+- Message roles: `user`, `assistant`, `system` only. `content` must be a string (no images in v0.1).
+- `maxTokens` defaults to 1024. `temperature` is only sent if you set it.
+- Pass `signal` (AbortSignal) to cancel. Extra provider-specific body fields go in `providerOptions`.
+
+## Structured output
+
+```js
+const { data } = await ai.generateJSON({
+  prompt: '…',
+  schema: { type: 'object', properties: { … }, required: [ … ] },
+  name: 'extraction',            // optional, [A-Za-z0-9_-]
+  validate: (d) => MyZod.parse(d) // optional; throw to reject, return to replace
+});
+```
+
+- Always pass a JSON Schema object in `schema`. The result is validated; on mismatch the model is shown the errors and asked again (`repairAttempts`, default 1).
+- Do not ask for JSON in the prompt and then `JSON.parse(text)` yourself; use `generateJSON`.
+
+## Streaming
+
+```js
+for await (const chunk of ai.streamText({ prompt: '…' })) process.stdout.write(chunk);
+// or events: { type: 'text', text } … then { type: 'done', text, usage, finishReason, provider }
+for await (const ev of ai.stream({ prompt: '…' })) { … }
+```
+
+## Errors
+
+All failures throw `AIError` with `err.code` in: `configuration`, `authentication`, `permission`, `insufficient_credits`, `not_found`, `rate_limit`, `overloaded`, `unavailable`, `timeout`, `network`, `invalid_request`, `context_length`, `content_filter`, `invalid_response`, `aborted`. Branch on `err.code`, not on message text. `err.retryable`, `err.retryAfterMs`, `err.attempts`, `err.issues` (schema problems) are available. Retries and fallbacks already happen inside the client; do not wrap calls in your own retry loop.
+
+## Tests
+
+Use `createAI({ provider: 'mock', mock: { reply: 'text' | object | (req) => …, fail: 'rate_limit' } })`. It needs no network or key and generates schema-valid JSON for `generateJSON` when `reply` is omitted.
+
+## Security rules
+
+- Never log `apiKey` values; logging the client or `ai.info()` is safe.
+- Do not set `allowBrowser: true` to call a cloud provider from frontend code with your own key. Call the model from the server.
+- Do not put keys in `baseUrl`.

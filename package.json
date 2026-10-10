@@ -1,0 +1,27 @@
+{
+  "name": "universal-llm-client",
+  "version": "0.1.0",
+  "description": "Bring your own AI: one tiny, zero-dependency client for OpenAI, Anthropic, Gemini, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Ollama and LM Studio, with fallback chains, retries, structured JSON and streaming.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": ["src", "README.md", "llms.txt", "LICENSE"],
+  "sideEffects": false,
+  "engines": { "node": ">=18.17" },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "keywords": ["ai", "llm", "openai", "anthropic", "claude", "gemini", "ollama", "openrouter", "byok", "fallback", "structured-output", "streaming"],
+  "author": "Berk Arcak (https://github.com/Tngc93)",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/Tngc93/universal-llm-client.git" },
+  "bugs": { "url": "https://github.com/Tngc93/universal-llm-client/issues" },
+  "homepage": "https://github.com/Tngc93/universal-llm-client#readme"
+}
