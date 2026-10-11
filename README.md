@@ -51,14 +51,14 @@ Every AI feature ends up rewriting the same layer: three request formats, three 
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TB
   app["Your code<br/>generate · generateJSON · streamText"] --> client["Client<br/>src/index.js"]
   env["LLM_PROVIDER · LLM_MODEL · LLM_FALLBACK<br/>fromEnv()"] -.-> client
   client --> chain{"fallback chain<br/>next provider"}
   chain --> presets["Provider presets<br/>src/providers.js<br/>endpoint · env vars · quirks"]
 
   subgraph protocols["Wire protocols"]
-    direction TB
+    direction LR
     openai["OpenAI Chat Completions<br/>OpenAI · OpenRouter · Groq · Mistral<br/>DeepSeek · xAI · Together · Ollama<br/>LM Studio · any compatible endpoint"]
     anthropic["Anthropic Messages<br/>structured output = forced tool call"]
     gemini["Gemini generateContent<br/>responseJsonSchema · key in header"]

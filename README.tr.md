@@ -45,14 +45,14 @@ Her AI özelliği aynı katmanı yeniden yazmak zorunda kalıyor: üç farklı i
 ## Nasıl çalışır
 
 ```mermaid
-flowchart LR
+flowchart TB
   app["Senin kodun<br/>generate · generateJSON · streamText"] --> client["İstemci<br/>src/index.js"]
   env["LLM_PROVIDER · LLM_MODEL · LLM_FALLBACK<br/>fromEnv()"] -.-> client
   client --> chain{"fallback zinciri<br/>sıradaki sağlayıcı"}
   chain --> presets["Sağlayıcı ayarları<br/>src/providers.js<br/>uç nokta · ortam değişkenleri · istisnalar"]
 
   subgraph protocols["Protokoller"]
-    direction TB
+    direction LR
     openai["OpenAI Chat Completions<br/>OpenAI · OpenRouter · Groq · Mistral<br/>DeepSeek · xAI · Together · Ollama<br/>LM Studio · her uyumlu uç nokta"]
     anthropic["Anthropic Messages<br/>yapılandırılmış çıktı = zorunlu tool çağrısı"]
     gemini["Gemini generateContent<br/>responseJsonSchema · anahtar header'da"]
