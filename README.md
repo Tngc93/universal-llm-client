@@ -8,6 +8,11 @@ English | [Türkçe](README.tr.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/how-it-works-dark.svg">
+  <img src="docs/assets/how-it-works-light.svg" alt="Animated diagram: an app calls generateJSON, the client tries Anthropic first, gets rate limited, falls back to an OpenAI-compatible provider, validates the reply against the JSON schema and returns data plus the list of attempts; a mock provider covers offline tests" width="100%">
+</picture>
+
 ```js
 import { createAI } from 'universal-llm-client';
 
@@ -42,6 +47,32 @@ Every AI feature ends up rewriting the same layer: three request formats, three 
 - **Safe with keys.** Keys are never put in URLs, never appear in error messages, and cannot leak through `JSON.stringify(client)` or `console.log(client)`. Sending a key over plain HTTP to a remote host, or from a browser, is refused unless you opt in.
 - **Offline mock.** Deterministic replies, schema-valid JSON generated from your schema, simulated failures. Tests, CI and demos run without keys or network.
 - **No stale defaults.** There are no built-in model names, because model ids change every few months. You choose the model, in code or in an env var.
+
+## How it works
+
+```mermaid
+flowchart LR
+  app["Your code<br/>generate · generateJSON · streamText"] --> client["Client<br/>src/index.js"]
+  env["LLM_PROVIDER · LLM_MODEL · LLM_FALLBACK<br/>fromEnv()"] -.-> client
+  client --> chain{"fallback chain<br/>next provider"}
+  chain --> presets["Provider presets<br/>src/providers.js<br/>endpoint · env vars · quirks"]
+
+  subgraph protocols["Wire protocols"]
+    direction TB
+    openai["OpenAI Chat Completions<br/>OpenAI · OpenRouter · Groq · Mistral<br/>DeepSeek · xAI · Together · Ollama<br/>LM Studio · any compatible endpoint"]
+    anthropic["Anthropic Messages<br/>structured output = forced tool call"]
+    gemini["Gemini generateContent<br/>responseJsonSchema · key in header"]
+    mock["mock<br/>deterministic, offline"]
+  end
+
+  presets --> openai & anthropic & gemini & mock
+  openai & anthropic & gemini -- "fetch + SSE parser" --> net(("provider API"))
+  net -- "error" --> errors["AIError<br/>rate_limit · authentication · context_length …<br/>retry with backoff, honour Retry-After"]
+  errors -- "retries exhausted" --> chain
+  net -- "reply" --> json["JSON extract + schema validation<br/>src/json.js · one repair round"]
+  mock --> json
+  json --> result["result<br/>text · data · usage · attempts"]
+```
 
 ## Install
 
